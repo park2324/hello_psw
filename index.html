@@ -1,73 +1,140 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Woni Game World 🎮</title>
+  <meta charset="utf-8" />
+  <title>구구단 2단~9단 바둑판</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji, sans-serif;
-      display: grid;
-      place-items: center;
       min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
       background: Canvas;
       color: CanvasText;
     }
-    .board {
-      width: min(92vw, 720px);
-      display: grid;
-      grid-template-columns: repeat(10, 1fr);
-      gap: 8px;
+    header {
+      padding: 20px 24px;
+      text-align: center;
     }
-    .cell {
-      aspect-ratio: 1 / 1;
+    header h1 {
+      margin: 0;
+      font-size: clamp(20px, 3.6vw, 32px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    header p {
+      margin: 6px 0 0 0;
+      color: color-mix(in oklab, CanvasText 60%, transparent);
+      font-size: clamp(12px, 2.4vw, 15px);
+    }
+
+    main {
+      padding: 20px 22px 26px;
       display: grid;
-      place-items: center;
-      border-radius: 10px;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      align-content: start;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .dan {
       border: 1px solid color-mix(in oklab, CanvasText 18%, transparent);
+      background: color-mix(in oklab, Canvas 94%, CanvasText 6%);
+      border-radius: 14px;
+      overflow: clip;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+    }
+    .dan:hover {
+      transform: translateY(-2px);
+      background: color-mix(in oklab, Canvas 90%, CanvasText 10%);
+      box-shadow: 0 10px 28px -12px rgba(0,0,0,.35);
+    }
+
+    .dan-title {
+      margin: 0;
+      padding: 14px 16px;
+      font-weight: 800;
+      font-size: clamp(16px, 2.8vw, 20px);
+      border-bottom: 1px dashed color-mix(in oklab, CanvasText 22%, transparent);
+      background:
+        radial-gradient(10px 10px at 14px 50%, color-mix(in oklab, CanvasText 10%, transparent) 25%, transparent 26%) no-repeat,
+        linear-gradient(to right, transparent 0 48px, color-mix(in oklab, CanvasText 6%, transparent) 48px) 0 0/100% 100% no-repeat;
+    }
+
+    .lines { list-style: none; padding: 10px; margin: 0; display: grid; gap: 6px; }
+
+    .line {
+      padding: 8px 12px;
+      border-radius: 10px;
       background: color-mix(in oklab, Canvas 92%, CanvasText 8%);
       font-weight: 600;
-      font-size: clamp(14px, 2.4vw, 22px);
-      transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease;
-      user-select: none;
+      display: flex; align-items: center; justify-content: space-between;
+      font-variant-numeric: tabular-nums;
     }
-    .cell:hover {
-      transform: translateY(-2px);
-      background: color-mix(in oklab, Canvas 86%, CanvasText 14%);
-      box-shadow: 0 6px 18px -6px rgba(0,0,0,.25);
-      cursor: pointer;
-    }
-    .header {
-      margin-bottom: 14px;
+    .line:nth-child(odd) { background: color-mix(in oklab, Canvas 88%, CanvasText 12%); }
+
+    .expr { opacity: .9; }
+    .ans { font-weight: 800; }
+
+    footer {
+      padding: 14px 20px 20px;
       text-align: center;
-      font-weight: 700;
-      font-size: clamp(18px, 3.4vw, 28px);
-    }
-    .wrap {
-      width: 100%;
-      max-width: 760px;
-      padding: 20px;
-      box-sizing: border-box;
+      color: color-mix(in oklab, CanvasText 52%, transparent);
+      font-size: 12px;
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="header">1부터 100까지 숫자판</div>
-    <div class="board" id="board" aria-label="1부터 100까지 숫자판"></div>
-  </div>
+  <header>
+    <h1>구구단 (2단 ~ 9단)</h1>
+    <p>바둑판 모양으로 보기 좋게 정리했습니다.</p>
+  </header>
+
+  <main id="board" aria-label="구구단 2단부터 9단까지"></main>
+
+  <footer>Made for you · 자동 다크모드 지원</footer>
 
   <script>
     const board = document.getElementById('board');
-    for (let n = 1; n <= 100; n++) {
-      const div = document.createElement('div');
-      div.className = 'cell';
-      div.textContent = String(n);
-      div.setAttribute('role', 'button');
-      div.setAttribute('aria-label', `${n}`);
-      board.appendChild(div);
+    for (let dan = 2; dan <= 9; dan++) {
+      const card = document.createElement('section');
+      card.className = 'dan';
+
+      const title = document.createElement('h2');
+      title.className = 'dan-title';
+      title.textContent = `${dan}단`;
+      card.appendChild(title);
+
+      const list = document.createElement('ul');
+      list.className = 'lines';
+
+      for (let i = 1; i <= 9; i++) {
+        const li = document.createElement('li');
+        li.className = 'line';
+
+        const expr = document.createElement('span');
+        expr.className = 'expr';
+        expr.textContent = `${dan} × ${i} =`;
+
+        const ans = document.createElement('span');
+        ans.className = 'ans';
+        ans.textContent = String(dan * i);
+
+        li.appendChild(expr);
+        li.appendChild(ans);
+        list.appendChild(li);
+      }
+
+      card.appendChild(list);
+      board.appendChild(card);
     }
   </script>
 </body>
