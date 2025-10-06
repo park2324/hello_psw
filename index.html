@@ -1,92 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Woni Game World 🎮</title>
+  <meta charset="utf-8" />
+  <title>1부터 100까지 숫자판</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    :root { color-scheme: light dark; }
     body {
       margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(to bottom right, #1f4037, #99f2c8);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      text-align: center;
-      color: white;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji, sans-serif;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      background: Canvas;
+      color: CanvasText;
     }
-
-    h1 {
-      font-size: 3em;
-      margin-bottom: 30px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    .board {
+      width: min(92vw, 720px);
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 8px;
     }
-
-    .button-container {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      width: 80%;
-      max-width: 400px;
-    }
-
-    .game-button {
-      padding: 15px 25px;
-      font-size: 1.2em;
-      background: #ffffff20;
-      border: 2px solid white;
-      border-radius: 15px;
-      color: white;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      backdrop-filter: blur(6px);
-    }
-
-    .game-button:hover {
-      background-color: #fff;
-      color: #1f4037;
-      font-weight: bold;
-      transform: scale(1.05);
-    }
-
-    .money-btn {
-      margin-top: 30px;
-      padding: 10px 20px;
-      font-size: 1em;
-      background-color: gold;
-      color: black;
-      border: none;
+    .cell {
+      aspect-ratio: 1 / 1;
+      display: grid;
+      place-items: center;
       border-radius: 10px;
+      border: 1px solid color-mix(in oklab, CanvasText 18%, transparent);
+      background: color-mix(in oklab, Canvas 92%, CanvasText 8%);
+      font-weight: 600;
+      font-size: clamp(14px, 2.4vw, 22px);
+      transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease;
+      user-select: none;
+    }
+    .cell:hover {
+      transform: translateY(-2px);
+      background: color-mix(in oklab, Canvas 86%, CanvasText 14%);
+      box-shadow: 0 6px 18px -6px rgba(0,0,0,.25);
       cursor: pointer;
-      transition: all 0.3s ease;
     }
-
-    .money-btn:hover {
-      background-color: orange;
-      transform: scale(1.05);
+    .header {
+      margin-bottom: 14px;
+      text-align: center;
+      font-weight: 700;
+      font-size: clamp(18px, 3.4vw, 28px);
     }
-
-    footer {
-      position: absolute;
-      bottom: 10px;
-      font-size: 0.9em;
-      opacity: 0.7;
+    .wrap {
+      width: 100%;
+      max-width: 760px;
+      padding: 20px;
+      box-sizing: border-box;
     }
   </style>
 </head>
 <body>
-  <h1>Welcome to Woni Game World 🕹️</h1>
-
-  <div class="button-container">
-    <button class="game-button" onclick="location.href='https://park2324.github.io/woni-game/index1.html'">🎯 Game 1</button>
-    <button class="game-button" onclick="location.href='https://park2324.github.io/woni-game/index2.html'">🐤 Game 2</button>
-    <button class="game-button" onclick="location.href='https://park2324.github.io/woni-game/index3.html'">🦔 Game 3</button>
+  <div class="wrap">
+    <div class="header">1부터 100까지 숫자판</div>
+    <div class="board" id="board" aria-label="1부터 100까지 숫자판"></div>
   </div>
 
-  <button class="money-btn">💰 MONEY</button>
-
-  <footer>Made by Woni ✨</footer>
+  <script>
+    const board = document.getElementById('board');
+    for (let n = 1; n <= 100; n++) {
+      const div = document.createElement('div');
+      div.className = 'cell';
+      div.textContent = String(n);
+      div.setAttribute('role', 'button');
+      div.setAttribute('aria-label', `${n}`);
+      board.appendChild(div);
+    }
+  </script>
 </body>
 </html>
