@@ -1,141 +1,131 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <title>구구단 2단~9단 바둑판</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root { color-scheme: light dark; }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji, sans-serif;
-      min-height: 100vh;
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      background: Canvas;
-      color: CanvasText;
-    }
-    header {
-      padding: 20px 24px;
-      text-align: center;
-    }
-    header h1 {
-      margin: 0;
-      font-size: clamp(20px, 3.6vw, 32px);
-      font-weight: 800;
-      letter-spacing: -0.02em;
-    }
-    header p {
-      margin: 6px 0 0 0;
-      color: color-mix(in oklab, CanvasText 60%, transparent);
-      font-size: clamp(12px, 2.4vw, 15px);
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>즐거운 구구단 놀이 (2단~10단)</title>
+    <style>
+        /* 기본 스타일 초기화 */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
 
-    main {
-      padding: 20px 22px 26px;
-      display: grid;
-      gap: 14px;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      align-content: start;
-      max-width: 1200px;
-      width: 100%;
-      margin: 0 auto;
-    }
+        h1 {
+            text-align: center;
+            color: #ff6f61; /* 밝은 빨간색 */
+            margin-bottom: 30px;
+        }
 
-    .dan {
-      border: 1px solid color-mix(in oklab, CanvasText 18%, transparent);
-      background: color-mix(in oklab, Canvas 94%, CanvasText 6%);
-      border-radius: 14px;
-      overflow: clip;
-      display: grid;
-      grid-template-rows: auto 1fr;
-      transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
-    }
-    .dan:hover {
-      transform: translateY(-2px);
-      background: color-mix(in oklab, Canvas 90%, CanvasText 10%);
-      box-shadow: 0 10px 28px -12px rgba(0,0,0,.35);
-    }
+        /* 구구단 판을 위한 Grid 컨테이너 설정 */
+        .gugudan-container {
+            display: grid;
+            /* 3열로 설정 (2,3,4 / 5,6,7 / 8,9,10) */
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 20px; /* 격자 사이의 간격 */
+            max-width: 1200px;
+            margin: 0 auto;
+        }
 
-    .dan-title {
-      margin: 0;
-      padding: 14px 16px;
-      font-weight: 800;
-      font-size: clamp(16px, 2.8vw, 20px);
-      border-bottom: 1px dashed color-mix(in oklab, CanvasText 22%, transparent);
-      background:
-        radial-gradient(10px 10px at 14px 50%, color-mix(in oklab, CanvasText 10%, transparent) 25%, transparent 26%) no-repeat,
-        linear-gradient(to right, transparent 0 48px, color-mix(in oklab, CanvasText 6%, transparent) 48px) 0 0/100% 100% no-repeat;
-    }
+        /* 각 단의 테이블 스타일 */
+        .gugudan-table {
+            width: 100%;
+            border-collapse: collapse; /* 셀 경계선 합치기 */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden; /* 모서리 둥글게 처리 */
+            background-color: #ffffff;
+            border: 3px solid #6b5b95; /* 단색 테두리 */
+        }
 
-    .lines { list-style: none; padding: 10px; margin: 0; display: grid; gap: 6px; }
+        /* 테이블 헤더 (단 제목) 스타일 */
+        .gugudan-table th {
+            background-color: #6b5b95; /* 보라색 계열 */
+            color: white;
+            font-size: 1.8em;
+            padding: 15px;
+            text-align: center;
+        }
 
-    .line {
-      padding: 8px 12px;
-      border-radius: 10px;
-      background: color-mix(in oklab, Canvas 92%, CanvasText 8%);
-      font-weight: 600;
-      display: flex; align-items: center; justify-content: space-between;
-      font-variant-numeric: tabular-nums;
-    }
-    .line:nth-child(odd) { background: color-mix(in oklab, Canvas 88%, CanvasText 12%); }
+        /* 테이블 내용 (곱셈식) 스타일 */
+        .gugudan-table td {
+            padding: 12px;
+            font-size: 1.2em;
+            text-align: center;
+            border-bottom: 1px dashed #e0e0e0;
+        }
 
-    .expr { opacity: .9; }
-    .ans { font-weight: 800; }
+        /* 홀수 번째 행 배경색 */
+        .gugudan-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
 
-    footer {
-      padding: 14px 20px 20px;
-      text-align: center;
-      color: color-mix(in oklab, CanvasText 52%, transparent);
-      font-size: 12px;
-    }
-  </style>
+        /* 곱하는 수 (1x, 2x, 3x...) 강조 */
+        .multiplier {
+            font-weight: bold;
+            color: #009688; /* 녹색 계열 */
+        }
+
+        /* 결과 값 강조 */
+        .result {
+            font-weight: bold;
+            color: #ff6f61; /* 밝은 빨간색 */
+        }
+        
+        /* 10단만 특별히 3번째 줄의 첫번째 칸에 표시 */
+        .gugudan-container > div:last-child {
+             /* 8단, 9단 테이블이 위치한 줄의 3번째 칸을 비우고 10단을 채움 */
+             /* 2,3,4 / 5,6,7 / 8,9, **(10)** */
+             grid-column: 3 / 4;
+             grid-row: 3 / 4;
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <h1>구구단 (2단 ~ 9단)</h1>
-    <p>바둑판 모양으로 보기 좋게 정리했습니다.</p>
-  </header>
 
-  <main id="board" aria-label="구구단 2단부터 9단까지"></main>
+    <h1>✨ 2단부터 10단까지 구구단 놀이! ✨</h1>
 
-  <footer>Made for you · 자동 다크모드 지원</footer>
+    <div class="gugudan-container">
+        <script>
+            // 2단부터 10단까지의 데이터를 담은 배열
+            const danList = [2, 3, 4, 5, 6, 7, 8, 9, 10];
+            
+            danList.forEach(dan => {
+                let html = `
+                    <div>
+                        <table class="gugudan-table">
+                            <thead>
+                                <tr>
+                                    <th colspan="3">${dan}단</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                // 1부터 9까지 곱하기
+                for (let i = 1; i <= 9; i++) {
+                    html += `
+                                <tr>
+                                    <td>${dan}</td>
+                                    <td>× <span class="multiplier">${i}</span></td>
+                                    <td class="result">= ${dan * i}</td>
+                                </tr>
+                    `;
+                }
+                
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                // HTML에 테이블 추가
+                document.write(html);
+            });
+        </script>
+    </div>
 
-  <script>
-    const board = document.getElementById('board');
-    for (let dan = 2; dan <= 9; dan++) {
-      const card = document.createElement('section');
-      card.className = 'dan';
-
-      const title = document.createElement('h2');
-      title.className = 'dan-title';
-      title.textContent = `${dan}단`;
-      card.appendChild(title);
-
-      const list = document.createElement('ul');
-      list.className = 'lines';
-
-      for (let i = 1; i <= 9; i++) {
-        const li = document.createElement('li');
-        li.className = 'line';
-
-        const expr = document.createElement('span');
-        expr.className = 'expr';
-        expr.textContent = `${dan} × ${i} =`;
-
-        const ans = document.createElement('span');
-        ans.className = 'ans';
-        ans.textContent = String(dan * i);
-
-        li.appendChild(expr);
-        li.appendChild(ans);
-        list.appendChild(li);
-      }
-
-      card.appendChild(list);
-      board.appendChild(card);
-    }
-  </script>
 </body>
 </html>
