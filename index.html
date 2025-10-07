@@ -204,7 +204,8 @@
             const table = document.querySelector(`.gugudan-table[data-dan="${dan}"]`);
             const rows = table.querySelectorAll('tbody tr');
     
-            let idx = 0;
+            // 첫 문장(소개, 예: "2단.")은 건너뜀, i=1부터 시작
+            let idx = 1;
             function speakNext() {
                 if (idx >= sentences.length) {
                     if (lastHighlightedRow) {
@@ -215,7 +216,7 @@
                     return;
                 }
                 const sentence = sentences[idx];
-                const row = rows[idx];
+                const row = rows[idx - 1]; // rows[0]이 X1 줄에 해당
                 if (!row) {
                     idx++;
                     speakNext();
