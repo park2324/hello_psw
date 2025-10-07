@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>말하는 구구단 놀이 (2단~10단)</title>
+    <title>말하는 구구단 놀이 (2단~10단) - 수정 버전</title>
     <style>
-        /* (이전 CSS와 동일하게 유지) */
+        /* (CSS 스타일은 이전과 동일하게 유지) */
         body {
             font-family: 'Arial', sans-serif;
             margin: 20px;
@@ -35,12 +35,10 @@
             overflow: hidden;
             background-color: #ffffff;
             border: 3px solid #6b5b95;
-            /* 클릭 가능한 단 제목에 마우스 오버 효과 추가 */
             cursor: pointer; 
             transition: transform 0.2s;
         }
 
-        /* 마우스 오버 시 살짝 들어 올리는 효과 */
         .gugudan-table:hover {
             transform: translateY(-5px); 
         }
@@ -86,22 +84,27 @@
 
     <div class="gugudan-container">
         <script>
+            // 숫자를 한국어 발음 문자열로 변환하는 함수
+            // TTS가 숫자(Number)가 아닌 순수한 문자열(Text)로 인식하게 하여 오류를 줄입니다.
+            function numberToKorean(num) {
+                if (num === 10) return '십';
+                const units = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'];
+                return units[num];
+            }
+
             // Web Speech API를 사용하여 텍스트를 음성으로 변환하는 함수
             function speak(text) {
-                // 브라우저가 SpeechSynthesis API를 지원하는지 확인
                 if ('speechSynthesis' in window) {
                     const utterance = new SpeechSynthesisUtterance(text);
-                    utterance.lang = 'ko-KR'; // 한국어 설정
-                    utterance.rate = 0.8; // 말하는 속도 (조금 느리게)
+                    utterance.lang = 'ko-KR'; 
+                    utterance.rate = 0.8; 
                     
-                    // 한국어 음성 찾기 (브라우저 설정에 따라 다를 수 있음)
                     const voices = window.speechSynthesis.getVoices();
                     const koreanVoice = voices.find(voice => voice.lang === 'ko-KR');
                     if (koreanVoice) {
                         utterance.voice = koreanVoice;
                     }
 
-                    // 현재 읽고 있는 내용이 있다면 중지하고 새로 시작
                     window.speechSynthesis.cancel();
                     window.speechSynthesis.speak(utterance);
                 } else {
@@ -109,10 +112,11 @@
                 }
             }
             
-            // 구구단 테이블을 생성하고 클릭 이벤트 리스너를 추가하는 함수
+            // 구구단 테이블을 생성하고 음성 텍스트를 만드는 함수
             function createGugudanTable(dan) {
                 let htmlContent = '';
-                let speechText = `${dan}단 외워보기.`;
+                // 시작 문구는 숫자로 남겨서 '이 단 외워보기'가 아닌 '2단 외워보기'로 명확하게 함
+                let speechText = `${dan}단 외워보기.`; 
 
                 htmlContent += `
                     <div>
@@ -125,10 +129,15 @@
                             <tbody>
                 `;
                 
+                const danKorean = numberToKorean(dan); // 예: '이'
+                
                 for (let i = 1; i <= 9; i++) {
                     const result = dan * i;
-                    // 음성으로 읽어줄 텍스트 생성
-                    speechText += `${dan} 곱하기 ${i}는 ${result}.`;
+                    const iKorean = numberToKorean(i); // 예: '일'
+                    
+                    // 핵심 수정: '이 곱하기 일은 이' 형태로 문자열 생성.
+                    // 이렇게 하면 TTS 엔진이 숫자를 읽으면서 발생하는 '점' 오류를 회피합니다.
+                    speechText += `${danKorean} 곱하기 ${iKorean}는 ${result}.`; 
                     
                     htmlContent += `
                                 <tr>
@@ -145,11 +154,10 @@
                     </div>
                 `;
                 
-                // 생성된 HTML과 음성 텍스트를 반환
                 return { html: htmlContent, speech: speechText };
             }
 
-            // 단을 선택하면 음성을 출력하는 전역 함수 (HTML에서 직접 호출)
+            // 단을 선택하면 음성을 출력하는 전역 함수
             window.readGugudan = function(dan) {
                 const danData = danList.find(d => d.dan === dan);
                 if (danData) {
@@ -157,14 +165,13 @@
                 }
             }
 
-            // 2단부터 10단까지의 데이터를 담은 배열
             const danNumbers = [2, 3, 4, 5, 6, 7, 8, 9, 10];
-            const danList = []; // 음성 텍스트를 저장할 배열
+            const danList = []; 
 
             danNumbers.forEach(dan => {
                 const { html, speech } = createGugudanTable(dan);
-                document.write(html); // HTML에 테이블 추가
-                danList.push({ dan, speech }); // 음성 텍스트 저장
+                document.write(html); 
+                danList.push({ dan, speech }); 
             });
         </script>
     </div>
