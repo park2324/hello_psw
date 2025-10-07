@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>말하는 구구단 놀이 (하이라이트 싱크 수정 버전)</title>
+    <title>말하는 구구단 놀이 (하이라이트 싱크 최종 수정 버전)</title>
     <style>
         /* (기존 CSS 스타일 유지) */
         body {
@@ -185,49 +185,51 @@
         // ----------------------------------------------------
         let currentUtterance = null;
         let lastHighlightedRow = null;
+        
+        // ⭐ 싱크 조절 변수: 하이라이트를 몇 밀리초(ms) 지연시킬지 설정
+        const HIGHLIGHT_DELAY_MS = 100; 
+        
+        // TTS 속도 조정 (0.8~1.0 사이에서 최적의 싱크를 찾아보세요)
+        const TTS_RATE = 0.85; 
 
-        // Web Speech API를 사용하여 텍스트를 음성으로 변환하는 함수
         function speak(text, dan) {
             if ('speechSynthesis' in window) {
-                // 이전에 실행 중이던 TTS가 있다면 중지
                 if (currentUtterance) {
                     window.speechSynthesis.cancel();
                 }
-                // 이전 하이라이트 제거
                 if (lastHighlightedRow) {
                     lastHighlightedRow.classList.remove('highlight');
                     lastHighlightedRow = null;
                 }
 
-                // 음성 데이터를 문장 단위로 분리 (9개의 곱셈 문장)
                 const sentences = text.split('.').filter(s => s.trim().length > 0);
-                
-                // 해당 단의 모든 tr 요소를 가져옵니다. (제목 줄 제외한 9줄)
                 const table = document.querySelector(`.gugudan-table[data-dan="${dan}"]`);
                 const rows = table.querySelectorAll('tbody tr');
 
-                // 나머지 9개 발화 생성 및 이벤트 리스너 추가
                 sentences.forEach((sentence, index) => {
                     const row = rows[index];
-                    if (!row) return; // safety check
+                    if (!row) return;
                     
                     const utterance = new SpeechSynthesisUtterance(sentence + '.');
                     utterance.lang = 'ko-KR';
-                    utterance.rate = 0.8;
+                    utterance.rate = TTS_RATE; // 조정된 속도 적용
                     currentUtterance = utterance;
 
-                    // 새로운 문장이 시작될 때 (TTS 엔진이 문장을 처리하기 시작할 때)
+                    // 새로운 문장이 시작될 때
                     utterance.onstart = function() {
-                        // 이전 하이라이트 제거
-                        if (lastHighlightedRow) {
-                            lastHighlightedRow.classList.remove('highlight');
-                        }
-                        // 현재 줄 하이라이트 설정
-                        row.classList.add('highlight');
-                        lastHighlightedRow = row;
-                        
-                        // 현재 줄이 화면에 보이도록 스크롤
-                        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        // ⭐ 핵심 수정: setTimeout으로 하이라이트 적용을 지연시켜 싱크를 맞춤
+                        setTimeout(() => {
+                            // 이전 하이라이트 제거
+                            if (lastHighlightedRow) {
+                                lastHighlightedRow.classList.remove('highlight');
+                            }
+                            // 현재 줄 하이라이트 설정
+                            row.classList.add('highlight');
+                            lastHighlightedRow = row;
+                            
+                            // 현재 줄이 화면에 보이도록 스크롤
+                            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }, HIGHLIGHT_DELAY_MS);
                     };
 
                     // 마지막 문장이 끝났을 때 성공 효과 실행
@@ -242,7 +244,6 @@
                          };
                     }
 
-                    // 연속적으로 발화 큐에 추가
                     window.speechSynthesis.speak(utterance);
                 });
 
@@ -256,14 +257,12 @@
         // 1. 성공 팝업 및 효과 관련 함수
         // ----------------------------------------------------
 
-        // 성공 소리 재생 함수
         function playSuccessSound() {
             const audio = document.getElementById('successAudio');
             audio.currentTime = 0; 
             audio.play().catch(e => console.error("오디오 재생 오류:", e));
         }
 
-        // 컨페티 생성 함수 (간단한 구현)
         function createConfetti(x, y) {
             const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#00bcd4', '#009688', '#4caf50', '#ffeb3b', '#ff9800', '#ff5722'];
             const container = document.body;
@@ -298,7 +297,6 @@
             }
         }
 
-        // 성공 효과 통합 실행 함수
         function showSuccess(dan) {
             playSuccessSound();
 
@@ -312,10 +310,8 @@
         // 2. 구구단 생성 및 TTS 로직
         // ----------------------------------------------------
             
-        // 구구단 테이블을 생성하고 음성 텍스트를 만드는 함수
         function createGugudanTable(dan) {
             let htmlContent = '';
-            // TTS가 인식하기 쉬운 형태의 문장으로 전체 텍스트를 구성
             let speechText = `${dan}단 외워보기.`; 
 
             htmlContent += `
@@ -335,7 +331,7 @@
                 const result = dan * i;
                 const iKorean = numberToKorean(i);
                 
-                // ⭐ 싱크 개선을 위해 "곱하기"를 제거하고, 발화 텍스트를 최소화했습니다.
+                // 이전과 동일하게 텍스트를 최소화하여 TTS 지연을 줄임
                 speechText += `${danKorean} ${iKorean}는 ${result}.`; 
                 
                 htmlContent += `
@@ -356,7 +352,6 @@
             return { html: htmlContent, speech: speechText };
         }
 
-        // 단을 선택하면 음성을 출력하는 전역 함수 (HTML에서 직접 호출)
         window.readGugudan = function(dan) {
             const danData = danList.find(d => d.dan === dan);
             if (danData) {
@@ -364,7 +359,6 @@
             }
         }
 
-        // 2단부터 10단까지의 데이터를 담은 배열 생성 및 화면 출력
         const danNumbers = [2, 3, 4, 5, 6, 7, 8, 9, 10];
         const danList = []; 
         const container = document.querySelector('.gugudan-container');
