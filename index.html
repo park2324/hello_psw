@@ -162,7 +162,7 @@
         </div>
     </div>
     
-    <audio id="successAudio" src="/tada-fanfare-a-6313.mp3" preload="auto"></audio> 
+    <audio id="successAudio" src="./tada-fanfare-a-6313.mp3" preload="auto"></audio> 
     <script>
         // 숫자를 한국어 발음 문자열로 변환하는 함수
         function numberToKorean(num) {
@@ -205,7 +205,7 @@
         // 성공 소리 재생 함수
         function playSuccessSound() {
             const audio = document.getElementById('successAudio');
-            if (audio.src.includes('/tada-fanfare-a-6313.mp3')) {
+            if (audio.src.includes('./tada-fanfare-a-6313.mp3')) {
                 console.warn("경고: 성공 소리 파일 경로를 설정해주세요. (id=successAudio)");
                 // 대체: 간단한 경고음 재생 (선택 사항)
                 if ('AudioContext' in window) {
