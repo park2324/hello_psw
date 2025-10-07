@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>말하는 단어장 앱</title>
+    <title>말하는 단어장 앱 (예문 추가)</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -32,15 +32,23 @@
             max-width: 500px;
         }
 
-        .input-section input {
-            width: calc(50% - 10px);
+        /* 입력 필드를 위한 flexbox 레이아웃 */
+        .input-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .input-group input {
+            width: calc(50% - 5px);
             padding: 10px;
             margin-bottom: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
             box-sizing: border-box;
         }
-
+        
         .input-section button {
             width: 100%;
             padding: 10px;
@@ -65,10 +73,11 @@
         
         #flashCard {
             width: 300px;
-            height: 150px;
+            min-height: 150px; /* 높이를 최소값으로 설정하여 내용에 따라 늘어나게 함 */
             background-color: #6b5b95;
             color: white;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             font-size: 1.5em;
@@ -80,17 +89,28 @@
             transition: transform 0.3s, background-color 0.3s;
             perspective: 1000px;
             user-select: none;
+            padding: 15px;
+            box-sizing: border-box;
+            white-space: pre-wrap; /* 줄바꿈을 허용 */
+            word-break: break-all;
+        }
+
+        #flashCard .card-content-main {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        #flashCard .card-content-sub {
+            font-size: 0.9em;
+            font-weight: normal;
+            opacity: 0.8;
+            margin-top: 5px;
         }
 
         #flashCard.is-flipped {
             transform: rotateY(180deg);
         }
         
-        #cardContent {
-            transition: transform 0.3s;
-            transform-style: preserve-3d;
-        }
-
         .card-controls button {
             padding: 8px 15px;
             margin: 0 5px;
@@ -163,8 +183,14 @@
     <h1>📝 나만의 단어장</h1>
 
     <div class="input-section">
-        <input type="text" id="wordInput" placeholder="단어 (예: Apple)">
-        <input type="text" id="meaningInput" placeholder="뜻 (예: 사과)">
+        <div class="input-group">
+            <input type="text" id="wordInput" placeholder="단어 (예: Apple)">
+            <input type="text" id="meaningInput" placeholder="뜻 (예: 사과)">
+        </div>
+        <div class="input-group">
+            <input type="text" id="exampleInput" placeholder="예문 (선택)">
+            <input type="text" id="exampleMeaningInput" placeholder="예문 해석 (선택)">
+        </div>
         <button onclick="addWord()">단어 추가</button>
     </div>
     
@@ -186,53 +212,71 @@
     </div>
 
     <script>
+        // 단어 데이터를 저장할 배열
         let words = JSON.parse(localStorage.getItem('myWords')) || []; 
         let currentWordIndex = 0;
         let isMeaningShown = false;
 
+        // 시작 시 저장된 단어를 불러와 화면에 표시
         document.addEventListener('DOMContentLoaded', () => {
             renderWordList();
             updateFlashCard();
         });
 
+        // 로컬 저장소에 단어 배열 저장
         function saveWords() {
             localStorage.setItem('myWords', JSON.stringify(words));
         }
 
+        // 1. 단어 추가 기능
         function addWord() {
             const wordInput = document.getElementById('wordInput');
             const meaningInput = document.getElementById('meaningInput');
+            const exampleInput = document.getElementById('exampleInput');
+            const exampleMeaningInput = document.getElementById('exampleMeaningInput');
             
             const word = wordInput.value.trim();
             const meaning = meaningInput.value.trim();
+            const example = exampleInput.value.trim();
+            const exampleMeaning = exampleMeaningInput.value.trim();
 
+            // 단어와 뜻은 필수 입력
             if (word === "" || meaning === "") {
-                alert("단어와 뜻을 모두 입력해주세요!");
+                alert("단어와 뜻은 반드시 입력해야 합니다!");
                 return;
             }
 
-            words.push({ word, meaning });
-            saveWords();
+            // 예문, 예문 해석은 선택 입력이므로 값이 비어있어도 추가
+            words.push({ word, meaning, example, exampleMeaning });
+            saveWords(); // 저장
             
+            // 입력 필드 초기화
             wordInput.value = "";
             meaningInput.value = "";
+            exampleInput.value = "";
+            exampleMeaningInput.value = "";
 
             renderWordList();
             
+            // 새 단어를 추가하면 플래시 카드를 새 단어로 업데이트
             if (words.length === 1) {
                 currentWordIndex = 0;
                 updateFlashCard();
             }
         }
 
+        // 2. 단어 목록 화면에 그리기
         function renderWordList() {
             const listElement = document.getElementById('wordList');
-            listElement.innerHTML = '';
+            listElement.innerHTML = ''; // 목록 초기화
 
             words.forEach((item, index) => {
                 const li = document.createElement('li');
+                // 예문이 있다면 함께 표시
+                const exampleText = item.example ? `<br><small style="color:#666; font-size: 0.9em;">- ${item.example}</small>` : '';
+                
                 li.innerHTML = `
-                    <span>${item.word} - ${item.meaning}</span>
+                    <span>${item.word} - ${item.meaning}${exampleText}</span>
                     <div class="list-buttons">
                         <button class="speak-btn" onclick="speakWord('${item.word}')">🔊</button>
                         <button class="delete-btn" onclick="deleteWord(${index})">삭제</button>
@@ -242,6 +286,7 @@
             });
         }
         
+        // 3. 단어 삭제 기능
         function deleteWord(index) {
             if (confirm(`${words[index].word}를 정말 삭제하시겠습니까?`)) {
                 words.splice(index, 1);
@@ -258,28 +303,44 @@
             }
         }
 
+        // 4. 플래시 카드 내용 업데이트
         function updateFlashCard() {
-            const cardContent = document.getElementById('cardContent');
             const flashCard = document.getElementById('flashCard');
             
             if (words.length === 0) {
-                cardContent.innerText = '단어를 추가해 보세요!';
-                flashCard.style.backgroundColor = '#6b5b95';
+                flashCard.innerHTML = `<span id="cardContent">단어를 추가해 보세요!</span>`;
+                flashCard.style.backgroundColor = '#6b5b95'; // 기본색 유지
                 isMeaningShown = false;
                 return;
             }
 
             const currentWord = words[currentWordIndex];
             
+            // 플래시 카드 내용 업데이트
             if (!isMeaningShown) {
-                cardContent.innerText = currentWord.word;
-                flashCard.style.backgroundColor = '#6b5b95';
+                // 단어와 예문 보여주기
+                let contentHTML = `
+                    <div class="card-content-main">${currentWord.word}</div>
+                `;
+                if (currentWord.example) {
+                    contentHTML += `<div class="card-content-sub">${currentWord.example}</div>`;
+                }
+                flashCard.innerHTML = contentHTML;
+                flashCard.style.backgroundColor = '#6b5b95'; // 단어는 보라색
             } else {
-                cardContent.innerText = currentWord.meaning;
-                flashCard.style.backgroundColor = '#009688';
+                // 뜻과 예문 해석 보여주기
+                let contentHTML = `
+                    <div class="card-content-main">${currentWord.meaning}</div>
+                `;
+                if (currentWord.exampleMeaning) {
+                    contentHTML += `<div class="card-content-sub">${currentWord.exampleMeaning}</div>`;
+                }
+                flashCard.innerHTML = contentHTML;
+                flashCard.style.backgroundColor = '#009688'; // 뜻은 청록색
             }
         }
 
+        // 5. 카드 뒤집기 (단어/예문 <-> 뜻/예문 해석)
         function flipCard() {
             if (words.length === 0) return;
             
@@ -287,41 +348,34 @@
             updateFlashCard();
         }
 
+        // 6. 다음 단어 보기
         function nextWord() {
             if (words.length === 0) return;
             
             currentWordIndex = (currentWordIndex + 1) % words.length;
-            isMeaningShown = false;
+            isMeaningShown = false; // 새 단어로 이동 시 초기 상태 (단어)로
             updateFlashCard();
         }
 
+        // 7. 이전 단어 보기
         function prevWord() {
             if (words.length === 0) return;
             
             currentWordIndex = (currentWordIndex - 1 + words.length) % words.length;
-            isMeaningShown = false;
+            isMeaningShown = false; // 새 단어로 이동 시 초기 상태 (단어)로
             updateFlashCard();
         }
 
-        // --------------------------------------------------
-        // 새로운 기능: 단어 발음 기능
-        // --------------------------------------------------
+        // 8. 단어 발음 기능
         function speakWord(text) {
-            // SpeechSynthesis API를 지원하는지 확인
             if ('speechSynthesis' in window) {
                 const utterance = new SpeechSynthesisUtterance(text);
                 
-                // 영어 발음으로 설정 (미국 영어)
                 utterance.lang = 'en-US'; 
-                
-                // 속도 및 피치 조절 (선택 사항)
                 utterance.rate = 1.0; 
                 utterance.pitch = 1.0;
 
-                // 이미 재생 중인 음성이 있다면 중지
                 window.speechSynthesis.cancel();
-                
-                // 발음 시작
                 window.speechSynthesis.speak(utterance);
             } else {
                 alert("죄송합니다. 이 브라우저는 음성 합성 기능을 지원하지 않습니다.");
