@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>말하는 구구단 놀이 (성공 효과 추가)</title>
+    <title>말하는 구구단 놀이 (하이라이트 버전)</title>
     <style>
-        /* (기존 CSS 스타일은 유지) */
+        /* (기존 CSS 스타일 유지) */
         body {
             font-family: 'Arial', sans-serif;
             margin: 20px;
             background-color: #f4f7f6;
             color: #333;
-            overflow-x: hidden; /* 컨페티가 화면 밖으로 나가도 스크롤 생기지 않게 */
+            overflow-x: hidden;
         }
 
         h1 {
@@ -63,6 +63,15 @@
             background-color: #f9f9f9;
         }
 
+        /* 하이라이트 효과를 위한 CSS */
+        .highlight {
+            /* 중요한 수정: tr의 배경색을 직접 지정하고, 기존 짝수 행 배경색보다 우선하도록 !important 사용 */
+            background-color: #ffeb3b !important; /* 밝은 노란색 */
+            transition: background-color 0.1s ease-in-out; 
+            border: 2px solid #ff9800;
+        }
+
+
         .multiplier {
             font-weight: bold;
             color: #009688;
@@ -80,7 +89,7 @@
 
         /* 팝업 모달 스타일 */
         .modal-overlay {
-            display: none; /* 초기에는 숨김 */
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
@@ -93,7 +102,7 @@
         }
 
         .modal-content {
-            background-color: #ffc107; /* 노란색 배경 */
+            background-color: #ffc107;
             padding: 40px;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
@@ -103,7 +112,7 @@
         
         .modal-content h2 {
             font-size: 3em;
-            color: #d81b60; /* 팝업 강조색 */
+            color: #d81b60;
             margin-bottom: 10px;
         }
 
@@ -134,12 +143,12 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* 컨페티 스타일 (간단한 DOM 기반 구현을 위한 기본 설정) */
+        /* 컨페티 스타일 */
         .confetti {
             position: absolute;
             width: 8px;
             height: 8px;
-            background-color: red; /* 색상은 JS에서 랜덤하게 지정 */
+            background-color: red;
             border-radius: 50%;
             opacity: 0;
             pointer-events: none;
@@ -163,6 +172,7 @@
     </div>
     
     <audio id="successAudio" src="./tada-fanfare-a-6313.mp3" preload="auto"></audio> 
+    
     <script>
         // 숫자를 한국어 발음 문자열로 변환하는 함수
         function numberToKorean(num) {
@@ -171,29 +181,87 @@
             return units[num];
         }
 
+        // ----------------------------------------------------
+        // TTS 및 하이라이트 로직
+        // ----------------------------------------------------
+        let currentUtterance = null;
+        let lastHighlightedRow = null;
+
         // Web Speech API를 사용하여 텍스트를 음성으로 변환하는 함수
         function speak(text, dan) {
             if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'ko-KR'; 
-                utterance.rate = 0.8; 
-                
-                const voices = window.speechSynthesis.getVoices();
-                const koreanVoice = voices.find(voice => voice.lang === 'ko-KR');
-                if (koreanVoice) {
-                    utterance.voice = koreanVoice;
+                // 이전에 실행 중이던 TTS가 있다면 중지
+                if (currentUtterance) {
+                    window.speechSynthesis.cancel();
+                }
+                // 이전 하이라이트 제거
+                if (lastHighlightedRow) {
+                    lastHighlightedRow.classList.remove('highlight');
+                    lastHighlightedRow = null;
                 }
 
-                // TTS 읽기가 끝났을 때 성공 효과 실행
-                utterance.onend = function() {
-                    showSuccess(dan);
-                };
+                // 음성 데이터를 문장 단위로 분리 (9개의 곱셈 문장)
+                // '2단 외워보기.' 문장을 제외한 나머지 9개 문장을 기준으로 분리
+                const sentences = text.split('.').filter(s => s.trim().length > 0);
+                
+                // 해당 단의 모든 tr 요소를 가져옵니다. (제목 줄 제외한 9줄)
+                const table = document.querySelector(`.gugudan-table[data-dan="${dan}"]`);
+                const rows = table.querySelectorAll('tbody tr');
 
-                window.speechSynthesis.cancel();
-                window.speechSynthesis.speak(utterance);
+                // 문장 인덱스를 추적할 변수 (0: '2단 외워보기'는 무시)
+                let sentenceIndex = -1; 
+                
+                // 첫 번째 발화 (단 제목)
+                const titleUtterance = new SpeechSynthesisUtterance(`${dan}단 외워보기.`);
+                titleUtterance.lang = 'ko-KR';
+                titleUtterance.rate = 0.8;
+                
+                // 나머지 9개 발화 생성 및 이벤트 리스너 추가
+                sentences.forEach((sentence, index) => {
+                    const row = rows[index];
+                    if (!row) return; // safety check
+                    
+                    const utterance = new SpeechSynthesisUtterance(sentence + '.');
+                    utterance.lang = 'ko-KR';
+                    utterance.rate = 0.8;
+                    currentUtterance = utterance;
+
+                    // 새로운 문장이 시작될 때
+                    utterance.onstart = function() {
+                        // 이전 하이라이트 제거
+                        if (lastHighlightedRow) {
+                            lastHighlightedRow.classList.remove('highlight');
+                        }
+                        // 현재 줄 하이라이트 설정
+                        row.classList.add('highlight');
+                        lastHighlightedRow = row;
+                        
+                        // 현재 줄이 화면에 보이도록 스크롤
+                        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    };
+
+                    // 마지막 문장이 끝났을 때 성공 효과 실행
+                    if (index === sentences.length - 1) {
+                         utterance.onend = function() {
+                            // 마지막 하이라이트 제거
+                            if (lastHighlightedRow) {
+                                lastHighlightedRow.classList.remove('highlight');
+                                lastHighlightedRow = null;
+                            }
+                            showSuccess(dan);
+                         };
+                    }
+
+                    // 연속적으로 발화 큐에 추가
+                    window.speechSynthesis.speak(utterance);
+                });
+
+                // (선택사항) '2단 외워보기'를 먼저 읽게 하려면 여기에 titleUtterance를 speak해야 함.
+                // 하지만 onend로 연속 발화를 만들지 않으면 발화가 겹칠 수 있으므로, 
+                // 간단하게 전체 문장을 분리해서 순서대로 큐에 넣는 방식(위 코드)을 사용했습니다.
+
             } else {
                 alert("죄송합니다. 이 브라우저는 음성 합성 기능을 지원하지 않습니다.");
-                // 지원하지 않을 경우 즉시 성공 처리 (선택 사항)
                 showSuccess(dan);
             }
         }
@@ -205,21 +273,9 @@
         // 성공 소리 재생 함수
         function playSuccessSound() {
             const audio = document.getElementById('successAudio');
-            if (audio.src.includes('./tada-fanfare-a-6313.mp3')) {
-                console.warn("경고: 성공 소리 파일 경로를 설정해주세요. (id=successAudio)");
-                // 대체: 간단한 경고음 재생 (선택 사항)
-                if ('AudioContext' in window) {
-                    const ctx = new AudioContext();
-                    const oscillator = ctx.createOscillator();
-                    oscillator.type = 'sine';
-                    oscillator.frequency.setValueAtTime(440, ctx.currentTime);
-                    oscillator.connect(ctx.destination);
-                    oscillator.start();
-                    oscillator.stop(ctx.currentTime + 0.3);
-                }
-            } else {
-                 audio.play().catch(e => console.error("오디오 재생 오류:", e));
-            }
+            // 재생 전에 오디오를 처음으로 돌려야 연속 재생 가능
+            audio.currentTime = 0; 
+            audio.play().catch(e => console.error("오디오 재생 오류:", e));
         }
 
         // 컨페티 생성 함수 (간단한 구현)
@@ -232,30 +288,25 @@
                 confetti.className = 'confetti';
                 confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
                 
-                // 시작 위치를 화면 중앙으로 설정
                 confetti.style.left = x + 'px';
                 confetti.style.top = y + 'px';
                 
-                // 랜덤한 이동 애니메이션을 위한 값 설정
                 const angle = Math.random() * 360;
                 const distance = Math.random() * 100 + 50;
                 const duration = Math.random() * 1.5 + 1.5;
                 
-                // CSS 애니메이션
                 confetti.style.transition = `transform ${duration}s ease-out, opacity ${duration}s ease-out`;
                 confetti.style.opacity = 1;
                 
-                // 랜덤한 방향으로 튕기도록 변형
                 setTimeout(() => {
                     const finalX = x + distance * Math.cos(angle);
-                    const finalY = y + distance * Math.sin(angle) + 100; // 아래로 떨어지는 효과 추가
+                    const finalY = y + distance * Math.sin(angle) + 100;
                     confetti.style.transform = `translate(${finalX - x}px, ${finalY - y}px) rotate(${Math.random() * 360}deg)`;
                     confetti.style.opacity = 0;
                 }, 10);
                 
                 container.appendChild(confetti);
                 
-                // 애니메이션이 끝나면 요소 제거
                 setTimeout(() => {
                     confetti.remove();
                 }, duration * 1000 + 50);
@@ -264,14 +315,11 @@
 
         // 성공 효과 통합 실행 함수
         function showSuccess(dan) {
-            // 1. 소리 재생
             playSuccessSound();
 
-            // 2. 팝업 메시지 설정 및 표시
             document.getElementById('modalMessage').innerText = `${dan}단을 완벽하게 외웠어요! 대단해요!`;
             document.getElementById('successModal').style.display = 'flex';
             
-            // 3. 폭죽/컨페티 효과 실행 (화면 중앙)
             createConfetti(window.innerWidth / 2, window.innerHeight / 2);
         }
 
@@ -282,6 +330,7 @@
         // 구구단 테이블을 생성하고 음성 텍스트를 만드는 함수
         function createGugudanTable(dan) {
             let htmlContent = '';
+            // TTS가 인식하기 쉬운 형태의 문장으로 전체 텍스트를 구성
             let speechText = `${dan}단 외워보기.`; 
 
             htmlContent += `
@@ -301,7 +350,7 @@
                 const result = dan * i;
                 const iKorean = numberToKorean(i);
                 
-                // TTS 오류 방지를 위해 곱셈 부분은 한글로 변환
+                // 문장 끝에 마침표를 사용하여 TTS가 한 문장으로 인식하게 함 (중요)
                 speechText += `${danKorean}  ${iKorean}는 ${result}.`; 
                 
                 htmlContent += `
@@ -326,7 +375,6 @@
         window.readGugudan = function(dan) {
             const danData = danList.find(d => d.dan === dan);
             if (danData) {
-                // 음성 재생이 끝나면 showSuccess(dan)가 호출되도록 dan 값을 함께 전달
                 speak(danData.speech, dan);
             }
         }
@@ -338,7 +386,7 @@
 
         danNumbers.forEach(dan => {
             const { html, speech } = createGugudanTable(dan);
-            container.innerHTML += html; // document.write 대신 innerHTML 사용
+            container.innerHTML += html; 
             danList.push({ dan, speech }); 
         });
     </script>
