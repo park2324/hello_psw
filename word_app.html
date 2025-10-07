@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>나만의 단어장 앱</title>
+    <title>말하는 단어장 앱</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -33,7 +33,7 @@
         }
 
         .input-section input {
-            width: calc(50% - 10px); /* 두 개의 입력 필드를 한 줄에 배치 */
+            width: calc(50% - 10px);
             padding: 10px;
             margin-bottom: 10px;
             border: 1px solid #ccc;
@@ -78,7 +78,7 @@
             cursor: pointer;
             margin-bottom: 15px;
             transition: transform 0.3s, background-color 0.3s;
-            perspective: 1000px; /* 3D 효과를 위한 원근법 */
+            perspective: 1000px;
             user-select: none;
         }
 
@@ -128,8 +128,15 @@
         #wordList li:last-child {
             border-bottom: none;
         }
+        
+        /* 버튼 그룹 컨테이너 */
+        .list-buttons {
+            display: flex;
+            gap: 5px;
+        }
 
-        #wordList li .delete-btn {
+        #wordList li .delete-btn,
+        #wordList li .speak-btn {
             background-color: #ccc;
             color: #333;
             border: none;
@@ -139,8 +146,14 @@
             font-size: 0.8em;
             transition: background-color 0.2s;
         }
+
         #wordList li .delete-btn:hover {
             background-color: #ff6f61;
+            color: white;
+        }
+        
+        #wordList li .speak-btn:hover {
+            background-color: #009688;
             color: white;
         }
     </style>
@@ -173,23 +186,19 @@
     </div>
 
     <script>
-        // 단어 데이터를 저장할 배열
         let words = JSON.parse(localStorage.getItem('myWords')) || []; 
         let currentWordIndex = 0;
         let isMeaningShown = false;
 
-        // 시작 시 저장된 단어를 불러와 화면에 표시
         document.addEventListener('DOMContentLoaded', () => {
             renderWordList();
             updateFlashCard();
         });
 
-        // 로컬 저장소에 단어 배열 저장
         function saveWords() {
             localStorage.setItem('myWords', JSON.stringify(words));
         }
 
-        // 1. 단어 추가 기능
         function addWord() {
             const wordInput = document.getElementById('wordInput');
             const meaningInput = document.getElementById('meaningInput');
@@ -203,42 +212,41 @@
             }
 
             words.push({ word, meaning });
-            saveWords(); // 저장
+            saveWords();
             
             wordInput.value = "";
             meaningInput.value = "";
 
             renderWordList();
             
-            // 새 단어를 추가하면 플래시 카드를 새 단어로 업데이트
             if (words.length === 1) {
                 currentWordIndex = 0;
                 updateFlashCard();
             }
         }
 
-        // 2. 단어 목록 화면에 그리기
         function renderWordList() {
             const listElement = document.getElementById('wordList');
-            listElement.innerHTML = ''; // 목록 초기화
+            listElement.innerHTML = '';
 
             words.forEach((item, index) => {
                 const li = document.createElement('li');
                 li.innerHTML = `
                     <span>${item.word} - ${item.meaning}</span>
-                    <button class="delete-btn" onclick="deleteWord(${index})">삭제</button>
+                    <div class="list-buttons">
+                        <button class="speak-btn" onclick="speakWord('${item.word}')">🔊</button>
+                        <button class="delete-btn" onclick="deleteWord(${index})">삭제</button>
+                    </div>
                 `;
                 listElement.appendChild(li);
             });
         }
         
-        // 3. 단어 삭제 기능
         function deleteWord(index) {
             if (confirm(`${words[index].word}를 정말 삭제하시겠습니까?`)) {
                 words.splice(index, 1);
                 saveWords();
 
-                // 현재 인덱스가 삭제된 항목이었고, 목록이 비어있지 않다면 인덱스 조정
                 if (currentWordIndex >= words.length && words.length > 0) {
                     currentWordIndex = words.length - 1;
                 } else if (words.length === 0) {
@@ -250,14 +258,13 @@
             }
         }
 
-        // 4. 플래시 카드 내용 업데이트
         function updateFlashCard() {
             const cardContent = document.getElementById('cardContent');
             const flashCard = document.getElementById('flashCard');
             
             if (words.length === 0) {
                 cardContent.innerText = '단어를 추가해 보세요!';
-                flashCard.style.backgroundColor = '#6b5b95'; // 기본색 유지
+                flashCard.style.backgroundColor = '#6b5b95';
                 isMeaningShown = false;
                 return;
             }
@@ -265,17 +272,14 @@
             const currentWord = words[currentWordIndex];
             
             if (!isMeaningShown) {
-                // 단어 보여주기
                 cardContent.innerText = currentWord.word;
-                flashCard.style.backgroundColor = '#6b5b95'; // 단어는 보라색
+                flashCard.style.backgroundColor = '#6b5b95';
             } else {
-                // 뜻 보여주기
                 cardContent.innerText = currentWord.meaning;
-                flashCard.style.backgroundColor = '#009688'; // 뜻은 청록색
+                flashCard.style.backgroundColor = '#009688';
             }
         }
 
-        // 5. 카드 뒤집기 (단어 <-> 뜻)
         function flipCard() {
             if (words.length === 0) return;
             
@@ -283,23 +287,45 @@
             updateFlashCard();
         }
 
-        // 6. 다음 단어 보기
         function nextWord() {
             if (words.length === 0) return;
             
             currentWordIndex = (currentWordIndex + 1) % words.length;
-            isMeaningShown = false; // 새 단어로 이동 시 초기 상태 (단어)로
+            isMeaningShown = false;
             updateFlashCard();
         }
 
-        // 7. 이전 단어 보기
         function prevWord() {
             if (words.length === 0) return;
             
-            // 자바스크립트 모듈로 연산: (a - 1 + n) % n.
             currentWordIndex = (currentWordIndex - 1 + words.length) % words.length;
-            isMeaningShown = false; // 새 단어로 이동 시 초기 상태 (단어)로
+            isMeaningShown = false;
             updateFlashCard();
+        }
+
+        // --------------------------------------------------
+        // 새로운 기능: 단어 발음 기능
+        // --------------------------------------------------
+        function speakWord(text) {
+            // SpeechSynthesis API를 지원하는지 확인
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                
+                // 영어 발음으로 설정 (미국 영어)
+                utterance.lang = 'en-US'; 
+                
+                // 속도 및 피치 조절 (선택 사항)
+                utterance.rate = 1.0; 
+                utterance.pitch = 1.0;
+
+                // 이미 재생 중인 음성이 있다면 중지
+                window.speechSynthesis.cancel();
+                
+                // 발음 시작
+                window.speechSynthesis.speak(utterance);
+            } else {
+                alert("죄송합니다. 이 브라우저는 음성 합성 기능을 지원하지 않습니다.");
+            }
         }
     </script>
 </body>
