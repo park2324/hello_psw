@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>즐거운 구구단 놀이 (2단~10단)</title>
+    <title>말하는 구구단 놀이 (2단~10단)</title>
     <style>
-        /* 기본 스타일 초기화 */
+        /* (이전 CSS와 동일하게 유지) */
         body {
             font-family: 'Arial', sans-serif;
             margin: 20px;
@@ -15,41 +15,44 @@
 
         h1 {
             text-align: center;
-            color: #ff6f61; /* 밝은 빨간색 */
+            color: #ff6f61;
             margin-bottom: 30px;
         }
 
-        /* 구구단 판을 위한 Grid 컨테이너 설정 */
         .gugudan-container {
             display: grid;
-            /* 3열로 설정 (2,3,4 / 5,6,7 / 8,9,10) */
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 20px; /* 격자 사이의 간격 */
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
             max-width: 1200px;
             margin: 0 auto;
         }
 
-        /* 각 단의 테이블 스타일 */
         .gugudan-table {
             width: 100%;
-            border-collapse: collapse; /* 셀 경계선 합치기 */
+            border-collapse: collapse;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             border-radius: 10px;
-            overflow: hidden; /* 모서리 둥글게 처리 */
+            overflow: hidden;
             background-color: #ffffff;
-            border: 3px solid #6b5b95; /* 단색 테두리 */
+            border: 3px solid #6b5b95;
+            /* 클릭 가능한 단 제목에 마우스 오버 효과 추가 */
+            cursor: pointer; 
+            transition: transform 0.2s;
         }
 
-        /* 테이블 헤더 (단 제목) 스타일 */
+        /* 마우스 오버 시 살짝 들어 올리는 효과 */
+        .gugudan-table:hover {
+            transform: translateY(-5px); 
+        }
+
         .gugudan-table th {
-            background-color: #6b5b95; /* 보라색 계열 */
+            background-color: #6b5b95;
             color: white;
             font-size: 1.8em;
             padding: 15px;
             text-align: center;
         }
 
-        /* 테이블 내용 (곱셈식) 스타일 */
         .gugudan-table td {
             padding: 12px;
             font-size: 1.2em;
@@ -57,27 +60,21 @@
             border-bottom: 1px dashed #e0e0e0;
         }
 
-        /* 홀수 번째 행 배경색 */
         .gugudan-table tr:nth-child(even) {
             background-color: #f9f9f9;
         }
 
-        /* 곱하는 수 (1x, 2x, 3x...) 강조 */
         .multiplier {
             font-weight: bold;
-            color: #009688; /* 녹색 계열 */
+            color: #009688;
         }
 
-        /* 결과 값 강조 */
         .result {
             font-weight: bold;
-            color: #ff6f61; /* 밝은 빨간색 */
+            color: #ff6f61;
         }
         
-        /* 10단만 특별히 3번째 줄의 첫번째 칸에 표시 */
         .gugudan-container > div:last-child {
-             /* 8단, 9단 테이블이 위치한 줄의 3번째 칸을 비우고 10단을 채움 */
-             /* 2,3,4 / 5,6,7 / 8,9, **(10)** */
              grid-column: 3 / 4;
              grid-row: 3 / 4;
         }
@@ -85,44 +82,89 @@
 </head>
 <body>
 
-    <h1>✨ 2단부터 10단까지 구구단 놀이! ✨</h1>
+    <h1>🔊 말하는 구구단 놀이! (단 제목을 클릭해 보세요) 🔊</h1>
 
     <div class="gugudan-container">
         <script>
-            // 2단부터 10단까지의 데이터를 담은 배열
-            const danList = [2, 3, 4, 5, 6, 7, 8, 9, 10];
+            // Web Speech API를 사용하여 텍스트를 음성으로 변환하는 함수
+            function speak(text) {
+                // 브라우저가 SpeechSynthesis API를 지원하는지 확인
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'ko-KR'; // 한국어 설정
+                    utterance.rate = 0.8; // 말하는 속도 (조금 느리게)
+                    
+                    // 한국어 음성 찾기 (브라우저 설정에 따라 다를 수 있음)
+                    const voices = window.speechSynthesis.getVoices();
+                    const koreanVoice = voices.find(voice => voice.lang === 'ko-KR');
+                    if (koreanVoice) {
+                        utterance.voice = koreanVoice;
+                    }
+
+                    // 현재 읽고 있는 내용이 있다면 중지하고 새로 시작
+                    window.speechSynthesis.cancel();
+                    window.speechSynthesis.speak(utterance);
+                } else {
+                    alert("죄송합니다. 이 브라우저는 음성 합성 기능을 지원하지 않습니다.");
+                }
+            }
             
-            danList.forEach(dan => {
-                let html = `
+            // 구구단 테이블을 생성하고 클릭 이벤트 리스너를 추가하는 함수
+            function createGugudanTable(dan) {
+                let htmlContent = '';
+                let speechText = `${dan}단 외워보기.`;
+
+                htmlContent += `
                     <div>
-                        <table class="gugudan-table">
+                        <table class="gugudan-table" data-dan="${dan}">
                             <thead>
                                 <tr>
-                                    <th colspan="3">${dan}단</th>
+                                    <th colspan="3" onclick="readGugudan(${dan})">${dan}단 (클릭!)</th>
                                 </tr>
                             </thead>
                             <tbody>
                 `;
                 
-                // 1부터 9까지 곱하기
                 for (let i = 1; i <= 9; i++) {
-                    html += `
+                    const result = dan * i;
+                    // 음성으로 읽어줄 텍스트 생성
+                    speechText += `${dan} 곱하기 ${i}는 ${result}.`;
+                    
+                    htmlContent += `
                                 <tr>
                                     <td>${dan}</td>
                                     <td>× <span class="multiplier">${i}</span></td>
-                                    <td class="result">= ${dan * i}</td>
+                                    <td class="result">= ${result}</td>
                                 </tr>
                     `;
                 }
                 
-                html += `
+                htmlContent += `
                             </tbody>
                         </table>
                     </div>
                 `;
                 
-                // HTML에 테이블 추가
-                document.write(html);
+                // 생성된 HTML과 음성 텍스트를 반환
+                return { html: htmlContent, speech: speechText };
+            }
+
+            // 단을 선택하면 음성을 출력하는 전역 함수 (HTML에서 직접 호출)
+            window.readGugudan = function(dan) {
+                const danData = danList.find(d => d.dan === dan);
+                if (danData) {
+                    speak(danData.speech);
+                }
+            }
+
+            // 2단부터 10단까지의 데이터를 담은 배열
+            const danNumbers = [2, 3, 4, 5, 6, 7, 8, 9, 10];
+            const danList = []; // 음성 텍스트를 저장할 배열
+
+            danNumbers.forEach(dan => {
+                const { html, speech } = createGugudanTable(dan);
+                document.write(html); // HTML에 테이블 추가
+                danList.push({ dan, speech }); // 음성 텍스트 저장
             });
         </script>
     </div>
