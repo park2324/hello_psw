@@ -184,74 +184,67 @@
         // TTS 및 하이라이트 로직
         // ----------------------------------------------------
         let currentUtterance = null;
-    let lastHighlightedRow = null;
-    // ⭐ 싱크 조절 변수: 하이라이트를 100ms로 다시 설정합니다.
-    const HIGHLIGHT_DELAY_MS = 0; 
-    // TTS 속도 조정
-    const TTS_RATE = 0.9; 
-
-    function speak(text, dan) {
-        if (!('speechSynthesis' in window)) {
-            alert("죄송합니다. 이 브라우저는 음성 합성 기능을 지원하지 않습니다.");
-            showSuccess(dan);
-            return;
-        }
-
-        // 이전 TTS 중지 및 하이라이트 제거
-        window.speechSynthesis.cancel();
-        if (lastHighlightedRow) {
-            lastHighlightedRow.classList.remove('highlight');
-            lastHighlightedRow = null;
-        }
-
-        const sentences = text.split('.').filter(s => s.trim().length > 0);
-        const table = document.querySelector(`.gugudan-table[data-dan="${dan}"]`);
-        const rows = table.querySelectorAll('tbody tr');
-
-        let idx = 0;
-        function speakNext() {
-            if (idx >= sentences.length) {
-                // 마지막 하이라이트 제거 및 성공 효과
-                if (lastHighlightedRow) {
-                    lastHighlightedRow.classList.remove('highlight');
-                    lastHighlightedRow = null;
-                }
+        let lastHighlightedRow = null;
+        const TTS_RATE = 0.9; 
+    
+        function speak(text, dan) {
+            if (!('speechSynthesis' in window)) {
+                alert("죄송합니다. 이 브라우저는 음성 합성 기능을 지원하지 않습니다.");
                 showSuccess(dan);
                 return;
             }
-            const sentence = sentences[idx];
-            const row = rows[idx];
-            if (!row) {
-                idx++;
-                speakNext();
-                return;
-            }
-
-            // 하이라이트 먼저 적용
+    
+            window.speechSynthesis.cancel();
             if (lastHighlightedRow) {
                 lastHighlightedRow.classList.remove('highlight');
+                lastHighlightedRow = null;
             }
-            row.classList.add('highlight');
-            lastHighlightedRow = row;
-            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-            // 하이라이트 후 잠시 대기(HIGHLIGHT_DELAY_MS), 그 다음 TTS 실행
-            setTimeout(() => {
+    
+            const sentences = text.split('.').filter(s => s.trim().length > 0);
+            const table = document.querySelector(`.gugudan-table[data-dan="${dan}"]`);
+            const rows = table.querySelectorAll('tbody tr');
+    
+            let idx = 0;
+            function speakNext() {
+                if (idx >= sentences.length) {
+                    if (lastHighlightedRow) {
+                        lastHighlightedRow.classList.remove('highlight');
+                        lastHighlightedRow = null;
+                    }
+                    showSuccess(dan);
+                    return;
+                }
+                const sentence = sentences[idx];
+                const row = rows[idx];
+                if (!row) {
+                    idx++;
+                    speakNext();
+                    return;
+                }
+    
+                // 하이라이트 적용 (동시에)
+                if (lastHighlightedRow) {
+                    lastHighlightedRow.classList.remove('highlight');
+                }
+                row.classList.add('highlight');
+                lastHighlightedRow = row;
+                row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    
+                // 바로 TTS 실행 (동시에)
                 const utterance = new SpeechSynthesisUtterance(sentence + '.');
                 utterance.lang = 'ko-KR';
                 utterance.rate = TTS_RATE;
                 currentUtterance = utterance;
-
+    
                 utterance.onend = function() {
                     idx++;
                     speakNext();
                 };
                 window.speechSynthesis.speak(utterance);
-            }, HIGHLIGHT_DELAY_MS);
+            }
+    
+            speakNext();
         }
-
-        speakNext();
-    }
         
         // ----------------------------------------------------
         // 1. 성공 팝업 및 효과 관련 함수
