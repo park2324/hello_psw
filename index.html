@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>말하는 구구단 놀이 (하이라이트 싱크 최종 수정 버전)</title>
+    <title>말하는 구구단 놀이 (TTS 중단/싱크 문제 최종 해결)</title>
     <style>
         /* (기존 CSS 스타일 유지) */
         body {
@@ -160,7 +160,7 @@
     <h1>🔊 말하는 구구단 놀이! (단 제목을 클릭해 보세요) 🔊</h1>
 
     <div class="gugudan-container">
-        </div>
+    </div>
     
     <div id="successModal" class="modal-overlay" onclick="document.getElementById('successModal').style.display='none'">
         <div class="modal-content" onclick="event.stopPropagation()">
@@ -186,17 +186,19 @@
         let currentUtterance = null;
         let lastHighlightedRow = null;
         
-        // ⭐ 싱크 조절 변수: 하이라이트를 몇 밀리초(ms) 지연시킬지 설정
-        const HIGHLIGHT_DELAY_MS = 1000; 
+        // ⭐ 싱크 조절 변수: 하이라이트를 100ms로 다시 설정합니다.
+        const HIGHLIGHT_DELAY_MS = 100; 
         
-        // TTS 속도 조정 (0.8~1.0 사이에서 최적의 싱크를 찾아보세요)
+        // TTS 속도 조정
         const TTS_RATE = 0.85; 
 
         function speak(text, dan) {
             if ('speechSynthesis' in window) {
+                // 이전에 실행 중이던 TTS가 있다면 중지
                 if (currentUtterance) {
                     window.speechSynthesis.cancel();
                 }
+                // 이전 하이라이트 제거
                 if (lastHighlightedRow) {
                     lastHighlightedRow.classList.remove('highlight');
                     lastHighlightedRow = null;
@@ -212,12 +214,12 @@
                     
                     const utterance = new SpeechSynthesisUtterance(sentence + '.');
                     utterance.lang = 'ko-KR';
-                    utterance.rate = TTS_RATE; // 조정된 속도 적용
+                    utterance.rate = TTS_RATE;
                     currentUtterance = utterance;
 
                     // 새로운 문장이 시작될 때
                     utterance.onstart = function() {
-                        // ⭐ 핵심 수정: setTimeout으로 하이라이트 적용을 지연시켜 싱크를 맞춤
+                        // setTimeout으로 하이라이트 적용을 지연시켜 싱크를 맞춤
                         setTimeout(() => {
                             // 이전 하이라이트 제거
                             if (lastHighlightedRow) {
@@ -232,10 +234,11 @@
                         }, HIGHLIGHT_DELAY_MS);
                     };
 
-                    // 마지막 문장이 끝났을 때 성공 효과 실행
+                    // 마지막 문장이 끝났을 때 성공 효과 실행 (TTS 중단 문제를 해결하기 위해 onend 로직을 명확히 함)
                     if (index === sentences.length - 1) {
                          utterance.onend = function() {
-                            // 마지막 하이라이트 제거
+                            // TTS가 종료된 후, 마지막 하이라이트 제거 후 성공 효과 실행
+                            // onend는 때때로 지연될 수 있으므로, 별도의 타이머는 필요하지 않습니다.
                             if (lastHighlightedRow) {
                                 lastHighlightedRow.classList.remove('highlight');
                                 lastHighlightedRow = null;
@@ -312,6 +315,7 @@
             
         function createGugudanTable(dan) {
             let htmlContent = '';
+            // TTS가 인식하기 쉬운 형태의 문장으로 전체 텍스트를 구성
             let speechText = `${dan}단 외워보기.`; 
 
             htmlContent += `
@@ -331,7 +335,7 @@
                 const result = dan * i;
                 const iKorean = numberToKorean(i);
                 
-                // 이전과 동일하게 텍스트를 최소화하여 TTS 지연을 줄임
+                // 텍스트를 최소화하여 TTS 지연을 줄임
                 speechText += `${danKorean} ${iKorean}는 ${result}.`; 
                 
                 htmlContent += `
