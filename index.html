@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>말하는 구구단 놀이 (하이라이트 버전)</title>
+    <title>말하는 구구단 놀이 (하이라이트 싱크 수정 버전)</title>
     <style>
         /* (기존 CSS 스타일 유지) */
         body {
@@ -65,7 +65,6 @@
 
         /* 하이라이트 효과를 위한 CSS */
         .highlight {
-            /* 중요한 수정: tr의 배경색을 직접 지정하고, 기존 짝수 행 배경색보다 우선하도록 !important 사용 */
             background-color: #ffeb3b !important; /* 밝은 노란색 */
             transition: background-color 0.1s ease-in-out; 
             border: 2px solid #ff9800;
@@ -201,21 +200,12 @@
                 }
 
                 // 음성 데이터를 문장 단위로 분리 (9개의 곱셈 문장)
-                // '2단 외워보기.' 문장을 제외한 나머지 9개 문장을 기준으로 분리
                 const sentences = text.split('.').filter(s => s.trim().length > 0);
                 
                 // 해당 단의 모든 tr 요소를 가져옵니다. (제목 줄 제외한 9줄)
                 const table = document.querySelector(`.gugudan-table[data-dan="${dan}"]`);
                 const rows = table.querySelectorAll('tbody tr');
 
-                // 문장 인덱스를 추적할 변수 (0: '2단 외워보기'는 무시)
-                let sentenceIndex = -1; 
-                
-                // 첫 번째 발화 (단 제목)
-                const titleUtterance = new SpeechSynthesisUtterance(`${dan}단 외워보기.`);
-                titleUtterance.lang = 'ko-KR';
-                titleUtterance.rate = 0.8;
-                
                 // 나머지 9개 발화 생성 및 이벤트 리스너 추가
                 sentences.forEach((sentence, index) => {
                     const row = rows[index];
@@ -226,7 +216,7 @@
                     utterance.rate = 0.8;
                     currentUtterance = utterance;
 
-                    // 새로운 문장이 시작될 때
+                    // 새로운 문장이 시작될 때 (TTS 엔진이 문장을 처리하기 시작할 때)
                     utterance.onstart = function() {
                         // 이전 하이라이트 제거
                         if (lastHighlightedRow) {
@@ -256,10 +246,6 @@
                     window.speechSynthesis.speak(utterance);
                 });
 
-                // (선택사항) '2단 외워보기'를 먼저 읽게 하려면 여기에 titleUtterance를 speak해야 함.
-                // 하지만 onend로 연속 발화를 만들지 않으면 발화가 겹칠 수 있으므로, 
-                // 간단하게 전체 문장을 분리해서 순서대로 큐에 넣는 방식(위 코드)을 사용했습니다.
-
             } else {
                 alert("죄송합니다. 이 브라우저는 음성 합성 기능을 지원하지 않습니다.");
                 showSuccess(dan);
@@ -273,7 +259,6 @@
         // 성공 소리 재생 함수
         function playSuccessSound() {
             const audio = document.getElementById('successAudio');
-            // 재생 전에 오디오를 처음으로 돌려야 연속 재생 가능
             audio.currentTime = 0; 
             audio.play().catch(e => console.error("오디오 재생 오류:", e));
         }
@@ -350,8 +335,8 @@
                 const result = dan * i;
                 const iKorean = numberToKorean(i);
                 
-                // 문장 끝에 마침표를 사용하여 TTS가 한 문장으로 인식하게 함 (중요)
-                speechText += `${danKorean}  ${iKorean}는 ${result}.`; 
+                // ⭐ 싱크 개선을 위해 "곱하기"를 제거하고, 발화 텍스트를 최소화했습니다.
+                speechText += `${danKorean} ${iKorean}는 ${result}.`; 
                 
                 htmlContent += `
                             <tr>
