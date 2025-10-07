@@ -1,377 +1,75 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>말하는 구구단 놀이 (TTS 중단/싱크 문제 최종 해결)</title>
-    <style>
-        /* (기존 CSS 스타일 유지) */
-        body {
-            font-family: 'Arial', sans-serif;
-            margin: 20px;
-            background-color: #f4f7f6;
-            color: #333;
-            overflow-x: hidden;
+<script>
+    // ... (생략) ...
+
+    let currentUtterance = null;
+    let lastHighlightedRow = null;
+    // ⭐ 싱크 조절 변수: 하이라이트를 100ms로 다시 설정합니다.
+    const HIGHLIGHT_DELAY_MS = 100; 
+    // TTS 속도 조정
+    const TTS_RATE = 0.9; 
+
+    function speak(text, dan) {
+        if (!('speechSynthesis' in window)) {
+            alert("죄송합니다. 이 브라우저는 음성 합성 기능을 지원하지 않습니다.");
+            showSuccess(dan);
+            return;
         }
 
-        h1 {
-            text-align: center;
-            color: #ff6f61;
-            margin-bottom: 30px;
+        // 이전 TTS 중지 및 하이라이트 제거
+        window.speechSynthesis.cancel();
+        if (lastHighlightedRow) {
+            lastHighlightedRow.classList.remove('highlight');
+            lastHighlightedRow = null;
         }
 
-        .gugudan-container {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+        const sentences = text.split('.').filter(s => s.trim().length > 0);
+        const table = document.querySelector(`.gugudan-table[data-dan="${dan}"]`);
+        const rows = table.querySelectorAll('tbody tr');
 
-        .gugudan-table {
-            width: 100%;
-            border-collapse: collapse;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
-            background-color: #ffffff;
-            border: 3px solid #6b5b95;
-            cursor: pointer; 
-            transition: transform 0.2s;
-        }
-
-        .gugudan-table:hover {
-            transform: translateY(-5px); 
-        }
-
-        .gugudan-table th {
-            background-color: #6b5b95;
-            color: white;
-            font-size: 1.8em;
-            padding: 15px;
-            text-align: center;
-        }
-
-        .gugudan-table td {
-            padding: 12px;
-            font-size: 1.2em;
-            text-align: center;
-            border-bottom: 1px dashed #e0e0e0;
-        }
-
-        .gugudan-table tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        /* 하이라이트 효과를 위한 CSS */
-        .highlight {
-            background-color: #ffeb3b !important; /* 밝은 노란색 */
-            transition: background-color 0.1s ease-in-out; 
-            border: 2px solid #ff9800;
-        }
-
-
-        .multiplier {
-            font-weight: bold;
-            color: #009688;
-        }
-
-        .result {
-            font-weight: bold;
-            color: #ff6f61;
-        }
-        
-        .gugudan-container > div:last-child {
-             grid-column: 3 / 4;
-             grid-row: 3 / 4;
-        }
-
-        /* 팝업 모달 스타일 */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background-color: #ffc107;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            text-align: center;
-            animation: pop-in 0.3s ease-out;
-        }
-        
-        .modal-content h2 {
-            font-size: 3em;
-            color: #d81b60;
-            margin-bottom: 10px;
-        }
-
-        .modal-content p {
-            font-size: 1.5em;
-            color: #333;
-        }
-
-        .modal-close-btn {
-            margin-top: 20px;
-            padding: 10px 20px;
-            background-color: #d81b60;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 1.2em;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        .modal-close-btn:hover {
-            background-color: #ad1457;
-        }
-        
-        /* 팝업 등장 애니메이션 */
-        @keyframes pop-in {
-            0% { transform: scale(0.5); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        /* 컨페티 스타일 */
-        .confetti {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background-color: red;
-            border-radius: 50%;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 999;
-        }
-    </style>
-</head>
-<body>
-
-    <h1>🔊 말하는 구구단 놀이! (단 제목을 클릭해 보세요) 🔊</h1>
-
-    <div class="gugudan-container">
-    </div>
-    
-    <div id="successModal" class="modal-overlay" onclick="document.getElementById('successModal').style.display='none'">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <h2>🎉 짜잔! 🎉</h2>
-            <p id="modalMessage"></p>
-            <button class="modal-close-btn" onclick="document.getElementById('successModal').style.display='none'">잘했어요!</button>
-        </div>
-    </div>
-    
-    <audio id="successAudio" src="./tada-fanfare-a-6313.mp3" preload="auto"></audio> 
-    
-    <script>
-        // 숫자를 한국어 발음 문자열로 변환하는 함수
-        function numberToKorean(num) {
-            if (num === 10) return '십';
-            const units = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'];
-            return units[num];
-        }
-
-        // ----------------------------------------------------
-        // TTS 및 하이라이트 로직
-        // ----------------------------------------------------
-        let currentUtterance = null;
-        let lastHighlightedRow = null;
-        
-        // ⭐ 싱크 조절 변수: 하이라이트를 100ms로 다시 설정합니다.
-        const HIGHLIGHT_DELAY_MS = 100; 
-        
-        // TTS 속도 조정
-        const TTS_RATE = 0.9; 
-
-        function speak(text, dan) {
-            if ('speechSynthesis' in window) {
-                // 이전에 실행 중이던 TTS가 있다면 중지
-                if (currentUtterance) {
-                    window.speechSynthesis.cancel();
-                }
-                // 이전 하이라이트 제거
+        let idx = 0;
+        function speakNext() {
+            if (idx >= sentences.length) {
+                // 마지막 하이라이트 제거 및 성공 효과
                 if (lastHighlightedRow) {
                     lastHighlightedRow.classList.remove('highlight');
                     lastHighlightedRow = null;
                 }
-
-                const sentences = text.split('.').filter(s => s.trim().length > 0);
-                const table = document.querySelector(`.gugudan-table[data-dan="${dan}"]`);
-                const rows = table.querySelectorAll('tbody tr');
-
-                sentences.forEach((sentence, index) => {
-                    const row = rows[index];
-                    if (!row) return;
-                    
-                    const utterance = new SpeechSynthesisUtterance(sentence + '.');
-                    utterance.lang = 'ko-KR';
-                    utterance.rate = TTS_RATE;
-                    currentUtterance = utterance;
-
-                    // 새로운 문장이 시작될 때
-                    utterance.onstart = function() {
-                        // setTimeout으로 하이라이트 적용을 지연시켜 싱크를 맞춤
-                        setTimeout(() => {
-                            // 이전 하이라이트 제거
-                            if (lastHighlightedRow) {
-                                lastHighlightedRow.classList.remove('highlight');
-                            }
-                            // 현재 줄 하이라이트 설정
-                            row.classList.add('highlight');
-                            lastHighlightedRow = row;
-                            
-                            // 현재 줄이 화면에 보이도록 스크롤
-                            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                        }, HIGHLIGHT_DELAY_MS);
-                    };
-
-                    // 마지막 문장이 끝났을 때 성공 효과 실행 (TTS 중단 문제를 해결하기 위해 onend 로직을 명확히 함)
-                    if (index === sentences.length - 1) {
-                         utterance.onend = function() {
-                            // TTS가 종료된 후, 마지막 하이라이트 제거 후 성공 효과 실행
-                            // onend는 때때로 지연될 수 있으므로, 별도의 타이머는 필요하지 않습니다.
-                            if (lastHighlightedRow) {
-                                lastHighlightedRow.classList.remove('highlight');
-                                lastHighlightedRow = null;
-                            }
-                            showSuccess(dan);
-                         };
-                    }
-
-                    window.speechSynthesis.speak(utterance);
-                });
-
-            } else {
-                alert("죄송합니다. 이 브라우저는 음성 합성 기능을 지원하지 않습니다.");
                 showSuccess(dan);
+                return;
             }
-        }
-        
-        // ----------------------------------------------------
-        // 1. 성공 팝업 및 효과 관련 함수
-        // ----------------------------------------------------
-
-        function playSuccessSound() {
-            const audio = document.getElementById('successAudio');
-            audio.currentTime = 0; 
-            audio.play().catch(e => console.error("오디오 재생 오류:", e));
-        }
-
-        function createConfetti(x, y) {
-            const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#00bcd4', '#009688', '#4caf50', '#ffeb3b', '#ff9800', '#ff5722'];
-            const container = document.body;
-
-            for (let i = 0; i < 50; i++) {
-                const confetti = document.createElement('div');
-                confetti.className = 'confetti';
-                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                
-                confetti.style.left = x + 'px';
-                confetti.style.top = y + 'px';
-                
-                const angle = Math.random() * 360;
-                const distance = Math.random() * 100 + 50;
-                const duration = Math.random() * 1.5 + 1.5;
-                
-                confetti.style.transition = `transform ${duration}s ease-out, opacity ${duration}s ease-out`;
-                confetti.style.opacity = 1;
-                
-                setTimeout(() => {
-                    const finalX = x + distance * Math.cos(angle);
-                    const finalY = y + distance * Math.sin(angle) + 100;
-                    confetti.style.transform = `translate(${finalX - x}px, ${finalY - y}px) rotate(${Math.random() * 360}deg)`;
-                    confetti.style.opacity = 0;
-                }, 10);
-                
-                container.appendChild(confetti);
-                
-                setTimeout(() => {
-                    confetti.remove();
-                }, duration * 1000 + 50);
+            const sentence = sentences[idx];
+            const row = rows[idx];
+            if (!row) {
+                idx++;
+                speakNext();
+                return;
             }
-        }
 
-        function showSuccess(dan) {
-            playSuccessSound();
-
-            document.getElementById('modalMessage').innerText = `${dan}단을 완벽하게 외웠어요! 대단해요!`;
-            document.getElementById('successModal').style.display = 'flex';
-            
-            createConfetti(window.innerWidth / 2, window.innerHeight / 2);
-        }
-
-        // ----------------------------------------------------
-        // 2. 구구단 생성 및 TTS 로직
-        // ----------------------------------------------------
-            
-        function createGugudanTable(dan) {
-            let htmlContent = '';
-            // TTS가 인식하기 쉬운 형태의 문장으로 전체 텍스트를 구성
-            let speechText = `${dan}단.`; 
-
-            htmlContent += `
-                <div>
-                    <table class="gugudan-table" data-dan="${dan}">
-                        <thead>
-                            <tr>
-                                <th colspan="3" onclick="readGugudan(${dan})">${dan}단 (클릭!)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-            
-            const danKorean = numberToKorean(dan);
-            
-            for (let i = 1; i <= 9; i++) {
-                const result = dan * i;
-                const iKorean = numberToKorean(i);
-                
-                // 텍스트를 최소화하여 TTS 지연을 줄임
-                speechText += `${danKorean} ${iKorean}는 ${result}.`; 
-                
-                htmlContent += `
-                            <tr>
-                                <td>${dan}</td>
-                                <td>× <span class="multiplier">${i}</span></td>
-                                <td class="result">= ${result}</td>
-                            </tr>
-                `;
+            // 하이라이트 먼저 적용
+            if (lastHighlightedRow) {
+                lastHighlightedRow.classList.remove('highlight');
             }
-            
-            htmlContent += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
-            
-            return { html: htmlContent, speech: speechText };
+            row.classList.add('highlight');
+            lastHighlightedRow = row;
+            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            // 하이라이트 후 잠시 대기(HIGHLIGHT_DELAY_MS), 그 다음 TTS 실행
+            setTimeout(() => {
+                const utterance = new SpeechSynthesisUtterance(sentence + '.');
+                utterance.lang = 'ko-KR';
+                utterance.rate = TTS_RATE;
+                currentUtterance = utterance;
+
+                utterance.onend = function() {
+                    idx++;
+                    speakNext();
+                };
+                window.speechSynthesis.speak(utterance);
+            }, HIGHLIGHT_DELAY_MS);
         }
 
-        window.readGugudan = function(dan) {
-            const danData = danList.find(d => d.dan === dan);
-            if (danData) {
-                speak(danData.speech, dan);
-            }
-        }
+        speakNext();
+    }
 
-        const danNumbers = [2, 3, 4, 5, 6, 7, 8, 9, 10];
-        const danList = []; 
-        const container = document.querySelector('.gugudan-container');
-
-        danNumbers.forEach(dan => {
-            const { html, speech } = createGugudanTable(dan);
-            container.innerHTML += html; 
-            danList.push({ dan, speech }); 
-        });
-    </script>
-</body>
-</html>
+    // ... (나머지 스크립트 동일) ...
+</script>
