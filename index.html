@@ -185,7 +185,8 @@
         // ----------------------------------------------------
         let currentUtterance = null;
         let lastHighlightedRow = null;
-        const TTS_RATE = 0.9; 
+        // 기존 0.9 → 1.1로 살짝 빠르게
+        const TTS_RATE = 1.1; 
     
         function speak(text, dan) {
             if (!('speechSynthesis' in window)) {
